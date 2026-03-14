@@ -561,15 +561,35 @@ export const subAgentHandlers: Record<string, SSEHandler> = {
 
     const { requiresConfirmation, clientExecutable, internal } = getEventUI(event)
 
+    logger.info('[DIAG] subAgentHandlers.tool_call decision point', {
+      toolCallId,
+      toolName,
+      parentToolCallId,
+      isPartial,
+      internal,
+      requiresConfirmation,
+      clientExecutable,
+      isAvailableOnSimSide: isToolAvailableOnSimSide(toolName),
+      interactive: options.interactive,
+      autoExecuteTools: options.autoExecuteTools,
+      wasResultSeen: wasToolResultSeen(toolCallId),
+    })
+
     if (internal) {
+      logger.info('[DIAG] subAgentHandlers.tool_call SKIPPED (internal)', { toolCallId, toolName })
       return
     }
 
     if (!isToolAvailableOnSimSide(toolName)) {
+      logger.info('[DIAG] subAgentHandlers.tool_call SKIPPED (not available on sim side)', {
+        toolCallId,
+        toolName,
+      })
       return
     }
 
     const fireToolExecution = () => {
+      logger.info('[DIAG] subAgentHandlers.tool_call FIRING execution', { toolCallId, toolName })
       executeToolAndReport(toolCallId, context, execContext, options).catch((err) => {
         logger.error('Parallel subagent tool execution failed', {
           toolCallId,
@@ -593,6 +613,11 @@ export const subAgentHandlers: Record<string, SSEHandler> = {
       }
       if (options.autoExecuteTools !== false) {
         fireToolExecution()
+      } else {
+        logger.info('[DIAG] subAgentHandlers.tool_call SKIPPED (autoExecuteTools=false)', {
+          toolCallId,
+          toolName,
+        })
       }
       return
     }
@@ -736,6 +761,15 @@ export function handleSubagentRouting(event: SSEEvent, context: StreamingContext
       subagent: event.subagent,
     })
     return false
+  }
+  if (event.type === 'tool_call') {
+    logger.info('[DIAG] handleSubagentRouting routing tool_call to subAgentHandlers', {
+      toolCallId: event.toolCallId,
+      toolName: event.toolName,
+      subagent: event.subagent,
+      parentToolCallId: context.subAgentParentToolCallId,
+      stackDepth: context.subAgentParentStack.length,
+    })
   }
   return true
 }

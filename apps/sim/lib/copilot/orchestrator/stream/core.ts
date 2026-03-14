@@ -149,11 +149,34 @@ export async function runStreamLoop(
 
       const normalizedEvent = normalizeSseEvent(event)
 
+      // [DIAG] Log all tool_call and subagent events for nested agent debugging
+      if (
+        normalizedEvent.type === 'tool_call' ||
+        normalizedEvent.type === 'subagent_start' ||
+        normalizedEvent.type === 'subagent_end'
+      ) {
+        logger.info('[DIAG] SSE event received', {
+          type: normalizedEvent.type,
+          subagent: normalizedEvent.subagent,
+          agent: (normalizedEvent as any).agent,
+          toolCallId: normalizedEvent.toolCallId,
+          toolName: normalizedEvent.toolName,
+          parentStack: [...context.subAgentParentStack],
+          parentToolCallId: context.subAgentParentToolCallId,
+        })
+      }
+
       // Skip duplicate tool events — both forwarding AND handler dispatch.
       const shouldSkipToolCall = shouldSkipToolCallEvent(normalizedEvent)
       const shouldSkipToolResult = shouldSkipToolResultEvent(normalizedEvent)
 
       if (shouldSkipToolCall || shouldSkipToolResult) {
+        if (shouldSkipToolCall) {
+          logger.info('[DIAG] Skipping duplicate tool_call', {
+            toolCallId: normalizedEvent.toolCallId,
+            toolName: normalizedEvent.toolName,
+          })
+        }
         continue
       }
 
