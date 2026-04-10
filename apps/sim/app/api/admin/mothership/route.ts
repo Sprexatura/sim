@@ -41,6 +41,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'endpoint query param required' }, { status: 400 })
   }
 
+  if (!/^[a-zA-Z0-9_-]+$/.test(endpoint)) {
+    return NextResponse.json({ error: 'Invalid endpoint parameter' }, { status: 400 })
+  }
+
   const baseUrl = getMothershipUrl(environment)
   if (!baseUrl) {
     return NextResponse.json(
@@ -91,6 +95,10 @@ export async function GET(req: NextRequest) {
 
   if (!endpoint) {
     return NextResponse.json({ error: 'endpoint query param required' }, { status: 400 })
+  }
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(endpoint)) {
+    return NextResponse.json({ error: 'Invalid endpoint parameter' }, { status: 400 })
   }
 
   const baseUrl = getMothershipUrl(environment)

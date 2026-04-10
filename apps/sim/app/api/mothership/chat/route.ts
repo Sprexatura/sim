@@ -142,6 +142,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Workspace not found or access denied' }, { status: 403 })
     }
 
+    if (chatResult.status === 'rejected') {
+      logger.error(`[${tracker.requestId}] Failed to resolve chat`, {
+        chatId,
+        error: chatResult.reason instanceof Error ? chatResult.reason.message : 'Unknown error',
+      })
+      return NextResponse.json({ error: 'Failed to resolve chat' }, { status: 500 })
+    }
+
     let currentChat: any = null
     let conversationHistory: any[] = []
     let actualChatId = chatId
